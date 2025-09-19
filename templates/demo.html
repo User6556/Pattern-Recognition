@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Demo - Hopfield Network</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+            --secondary-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%);
+            --surface: #ffffff;
+            --surface-elevated: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            padding: 2rem;
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            position: relative;
+            z-index: 1;
+            font-size: 1.125rem;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .demo-section {
+            margin: 2rem 0;
+        }
+
+        .demo-section h3 {
+            color: #4a5568;
+            margin-bottom: 1rem;
+        }
+
+        .pattern-editor {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .pattern-grid {
+            display: inline-grid;
+            grid-template-columns: repeat(7, 40px);
+            grid-template-rows: repeat(7, 40px);
+            gap: 2px;
+            background: #e2e8f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 1rem auto;
+        }
+
+        .pattern-cell {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .pattern-cell.positive {
+            background-color: #2d3748;
+            color: white;
+        }
+
+        .pattern-cell.negative {
+            background-color: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .pattern-cell:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+
+        .preset-patterns {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .preset-pattern {
+            text-align: center;
+            cursor: pointer;
+            padding: 1rem;
+            border-radius: 10px;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .preset-pattern:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+
+        .preset-pattern h4 {
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+        }
+
+        .preset-grid {
+            display: inline-grid;
+            grid-template-columns: repeat(7, 16px);
+            grid-template-rows: repeat(7, 16px);
+            gap: 1px;
+            background: #e2e8f0;
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .preset-cell {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+        }
+
+        .preset-cell.positive {
+            background-color: #2d3748;
+        }
+
+        .preset-cell.negative {
+            background-color: #f7fafc;
+        }
+
+        .results {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .result-display {
+            text-align: center;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .result-display h4 {
+            color: #4a5568;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .similarity-info {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .similarity-bar {
+            margin: 0.5rem 0;
+        }
+
+        .similarity-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .similarity-progress {
+            background: #e2e8f0;
+            border-radius: 10px;
+            height: 15px;
+            overflow: hidden;
+        }
+
+        .similarity-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .similarity-p {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .similarity-q {
+            background: linear-gradient(90deg, #48bb78, #38a169);
+        }
+
+        .similarity-r {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+
+        .back-link {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Interactive Demo</h1>
+            <p>Click cells to create patterns and see Hopfield network recall in action</p>
+        </div>
+
+        <div class="content">
+            <!-- Pattern Editor -->
+            <div class="demo-section">
+                <div class="pattern-editor">
+                    <h3>Pattern Editor</h3>
+                    <p>Click on cells to toggle between +1 (black) and -1 (white)</p>
+                    
+                    <div class="pattern-grid" id="patternGrid">
+                        <!-- Grid cells will be generated by JavaScript -->
+                    </div>
+                    
+                    <div class="controls">
+                        <button class="btn btn-success" onclick="recallPattern()">🧠 Recall Pattern</button>
+                        <button class="btn btn-secondary" onclick="clearPattern()">🧹 Clear</button>
+                        <button class="btn btn-secondary" onclick="randomPattern()">🎲 Random</button>
+                        <button class="btn btn-secondary" onclick="addNoise()">⚡ Add Noise</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preset Patterns -->
+            <div class="demo-section">
+                <h3>Load Preset Patterns</h3>
+                <div class="preset-patterns">
+                    <div class="preset-pattern" onclick="loadPattern('P')">
+                        <h4>Pattern P</h4>
+                        <div class="preset-grid" id="presetP">
+                            <!-- Will be filled by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="preset-pattern" onclick="loadPattern('Q')">
+                        <h4>Pattern Q</h4>
+                        <div class="preset-grid" id="presetQ">
+                            <!-- Will be filled by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="preset-pattern" onclick="loadNoisyPattern('P')">
+                        <h4>Noisy P</h4>
+                        <div class="preset-grid" id="noisyP">
+                            <!-- Will be filled by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="preset-pattern" onclick="loadPattern('R')">
+                        <h4>Pattern R</h4>
+                        <div class="preset-grid" id="presetR">
+                            <!-- Will be filled by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="preset-pattern" onclick="loadNoisyPattern('Q')">
+                        <h4>Noisy Q</h4>
+                        <div class="preset-grid" id="noisyQ">
+                            <!-- Will be filled by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="results" id="results">
+                <h3>Recognition Results</h3>
+                <div class="loading" id="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Processing pattern...</p>
+                </div>
+                <div class="results-grid" id="resultsGrid" style="display: none;">
+                    <!-- Results will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="back-link">
+                <a href="/">← Back to Upload</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pattern data for 7x7 grids
+        const patterns = {
+            'P': [1, 1, 1, 1, 1, 1, -1, 1, -1, -1, -1, -1, -1, 1, 1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1],
+            'Q': [-1, 1, 1, 1, 1, 1, -1, 1, -1, -1, -1, -1, -1, 1, 1, -1, -1, -1, -1, -1, 1, 1, -1, -1, -1, -1, -1, 1, 1, -1, -1, -1, 1, -1, 1, 1, -1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, 1, 1],
+            'R': [1, 1, 1, 1, 1, 1, -1, 1, -1, -1, -1, -1, -1, 1, 1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, -1, 1, -1, -1, 1, -1, -1, -1, 1, -1, -1, -1, 1, -1, -1, 1, -1, -1, -1, -1, 1, -1]
+        };
+
+        let currentPattern = new Array(49).fill(-1);
+
+        // Initialize the grid
+        function initializeGrid() {
+            const grid = document.getElementById('patternGrid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 49; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'pattern-cell negative';
+                cell.textContent = '-1';
+                cell.onclick = () => toggleCell(i);
+                grid.appendChild(cell);
+            }
+            
+            // Initialize preset grids
+            initializePresetGrids();
+        }
+
+        function initializePresetGrids() {
+            // Pattern P
+            const presetP = document.getElementById('presetP');
+            presetP.innerHTML = '';
+            patterns.P.forEach(value => {
+                const cell = document.createElement('div');
+                cell.className = `preset-cell ${value === 1 ? 'positive' : 'negative'}`;
+                presetP.appendChild(cell);
+            });
+
+            // Pattern Q
+            const presetQ = document.getElementById('presetQ');
+            presetQ.innerHTML = '';
+            patterns.Q.forEach(value => {
+                const cell = document.createElement('div');
+                cell.className = `preset-cell ${value === 1 ? 'positive' : 'negative'}`;
+                presetQ.appendChild(cell);
+            });
+
+            // Pattern R
+            const presetR = document.getElementById('presetR');
+            presetR.innerHTML = '';
+            patterns.R.forEach(value => {
+                const cell = document.createElement('div');
+                cell.className = `preset-cell ${value === 1 ? 'positive' : 'negative'}`;
+                presetR.appendChild(cell);
+            });
+
+            // Noisy patterns
+            const noisyP = addNoiseToPattern(patterns.P, 0.2);
+            const noisyPGrid = document.getElementById('noisyP');
+            noisyPGrid.innerHTML = '';
+            noisyP.forEach(value => {
+                const cell = document.createElement('div');
+                cell.className = `preset-cell ${value === 1 ? 'positive' : 'negative'}`;
+                noisyPGrid.appendChild(cell);
+            });
+
+            const noisyQ = addNoiseToPattern(patterns.Q, 0.2);
+            const noisyQGrid = document.getElementById('noisyQ');
+            noisyQGrid.innerHTML = '';
+            noisyQ.forEach(value => {
+                const cell = document.createElement('div');
+                cell.className = `preset-cell ${value === 1 ? 'positive' : 'negative'}`;
+                noisyQGrid.appendChild(cell);
+            });
+        }
+
+        function toggleCell(index) {
+            currentPattern[index] = currentPattern[index] === 1 ? -1 : 1;
+            updateGrid();
+        }
+
+        function updateGrid() {
+            const cells = document.querySelectorAll('#patternGrid .pattern-cell');
+            cells.forEach((cell, index) => {
+                const value = currentPattern[index];
+                cell.className = `pattern-cell ${value === 1 ? 'positive' : 'negative'}`;
+                cell.textContent = value.toString();
+            });
+        }
+
+        function clearPattern() {
+            currentPattern.fill(-1);
+            updateGrid();
+        }
+
+        function randomPattern() {
+            for (let i = 0; i < 49; i++) {
+                currentPattern[i] = Math.random() > 0.5 ? 1 : -1;
+            }
+            updateGrid();
+        }
+
+        function loadPattern(patternName) {
+            currentPattern = [...patterns[patternName]];
+            updateGrid();
+        }
+
+        function loadNoisyPattern(patternName) {
+            const noisyPattern = addNoiseToPattern(patterns[patternName], 0.2);
+            currentPattern = [...noisyPattern];
+            updateGrid();
+        }
+
+        function addNoise() {
+            const noiseLevel = 0.15; // 15% noise
+            const numBitsToFlip = Math.floor(49 * noiseLevel);
+            
+            for (let i = 0; i < numBitsToFlip; i++) {
+                const randomIndex = Math.floor(Math.random() * 49);
+                currentPattern[randomIndex] = -currentPattern[randomIndex];
+            }
+            
+            updateGrid();
+        }
+
+        function addNoiseToPattern(pattern, noiseLevel) {
+            const noisy = [...pattern];
+            const numBitsToFlip = Math.floor(49 * noiseLevel);
+            
+            for (let i = 0; i < numBitsToFlip; i++) {
+                const randomIndex = Math.floor(Math.random() * 49);
+                noisy[randomIndex] = -noisy[randomIndex];
+            }
+            
+            return noisy;
+        }
+
+        async function recallPattern() {
+            const resultsDiv = document.getElementById('results');
+            const loading = document.getElementById('loading');
+            const resultsGrid = document.getElementById('resultsGrid');
+            
+            resultsDiv.classList.add('show');
+            loading.style.display = 'block';
+            resultsGrid.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/recall', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        pattern: currentPattern
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                const result = await response.json();
+                displayResults(result);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error processing pattern. Please try again.');
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayResults(result) {
+            const resultsGrid = document.getElementById('resultsGrid');
+            
+            resultsGrid.innerHTML = `
+                <div class="result-display">
+                    <h4>Input Pattern</h4>
+                    <div class="pattern-grid">
+                        ${currentPattern.map(value => 
+                            `<div class="pattern-cell ${value === 1 ? 'positive' : 'negative'}">${value}</div>`
+                        ).join('')}
+                    </div>
+                </div>
+                    <div class="result-display">
+                        <h4>Recalled Pattern</h4>
+                        <div class="pattern-grid">
+                            ${result.recalled_pattern.map(value => 
+                                `<div class="pattern-cell ${value === 1 ? 'positive' : 'negative'}">${value}</div>`
+                            ).join('')}
+                        </div>
+                        <div class="similarity-info">
+                            <p><strong>Best Match:</strong> ${result.best_match}</p>
+                            <p><strong>Converged:</strong> ${result.converged ? 'Yes' : 'No'}</p>
+                            <p><strong>Iterations:</strong> ${result.iterations}</p>
+                            
+                            <h5 style="margin-top: 1rem; color: #4a5568;">Hamming Distances:</h5>
+                            ${Object.entries(result.final_distances).map(([name, distance]) => 
+                                `<p><strong>${name}:</strong> ${distance}/49 bits different</p>`
+                            ).join('')}
+                            
+                            <h5 style="margin-top: 1rem; color: #4a5568;">Similarities:</h5>
+                            ${Object.entries(result.similarities).map(([name, similarity]) => 
+                                `<div class="similarity-bar">
+                                    <div class="similarity-label">
+                                        <span>Pattern ${name}</span>
+                                        <span>${(similarity * 100).toFixed(1)}%</span>
+                                    </div>
+                                    <div class="similarity-progress">
+                                        <div class="similarity-fill similarity-${name.toLowerCase()}" 
+                                             style="width: ${similarity * 100}%"></div>
+                                    </div>
+                                </div>`
+                            ).join('')}
+                        </div>
+                    </div>
+            `;
+            
+            resultsGrid.style.display = 'grid';
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeGrid);
+    </script>
+</body>
+</html>

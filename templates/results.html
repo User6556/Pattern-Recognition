@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pattern Recognition Results - Hopfield Network</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+            --secondary-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%);
+            --surface: #ffffff;
+            --surface-elevated: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            padding: 2rem;
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            opacity: 0.95;
+            font-weight: 400;
+            position: relative;
+            z-index: 1;
+        }
+
+        .content {
+            padding: 3rem;
+        }
+
+        .results-summary {
+            background: var(--surface-elevated);
+            border-radius: var(--radius-xl);
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .result-card {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-gradient);
+        }
+
+        .result-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .result-card h3 {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .result-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .convergence-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            color: white;
+            font-size: 0.875rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .converged {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+        }
+
+        .not-converged {
+            background: linear-gradient(135deg, var(--error) 0%, #dc2626 100%);
+        }
+
+        .visualization {
+            text-align: center;
+            margin: 3rem 0;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .visualization h2 {
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .visualization img {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border);
+            transition: transform 0.3s ease;
+        }
+
+        .visualization img:hover {
+            transform: scale(1.02);
+        }
+
+        .pattern-details {
+            background: var(--surface-elevated);
+            border-radius: var(--radius-xl);
+            padding: 3rem;
+            margin: 3rem 0;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            animation: fadeInUp 0.8s ease-out 0.6s both;
+        }
+
+        .pattern-details h3 {
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .pattern-grids {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .pattern-display {
+            text-align: center;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .pattern-display h4 {
+            color: #4a5568;
+            margin-bottom: 1rem;
+        }
+
+        .pattern-grid {
+            display: inline-grid;
+            grid-template-columns: repeat(7, 24px);
+            grid-template-rows: repeat(7, 24px);
+            gap: 2px;
+            background: #e2e8f0;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 0 auto;
+        }
+
+        .pattern-cell {
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.7rem;
+        }
+
+        .pattern-cell.positive {
+            background-color: #2d3748;
+            color: white;
+        }
+
+        .pattern-cell.negative {
+            background-color: #f7fafc;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+        }
+
+        .similarities {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .similarity-bar {
+            margin: 1rem 0;
+        }
+
+        .similarity-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .similarity-progress {
+            background: #e2e8f0;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+        }
+
+        .similarity-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .similarity-p {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .similarity-q {
+            background: linear-gradient(90deg, #48bb78, #38a169);
+        }
+
+        .actions {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+            transform: translateY(-2px);
+        }
+
+        .technical-details {
+            background: #2d3748;
+            color: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .technical-details h3 {
+            color: #a0aec0;
+            margin-bottom: 1rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .detail-item {
+            background: rgba(255,255,255,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .detail-label {
+            color: #a0aec0;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem;
+            }
+
+            .header {
+                padding: 2rem 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 2rem;
+            }
+
+            .results-summary {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1.5rem;
+            }
+
+            .pattern-grids {
+                grid-template-columns: 1fr;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .result-value {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Pattern Recognition Results</h1>
+            <p>Hopfield Network Analysis Complete</p>
+        </div>
+
+        <div class="content">
+            <!-- Results Summary -->
+            <div class="results-summary">
+                <div class="result-card">
+                    <h3>Best Match</h3>
+                    <div class="result-value">{{ results.best_match }}</div>
+                </div>
+                <div class="result-card">
+                    <h3>Similarity</h3>
+                    <div class="result-value">{{ "%.1f" | format(results.similarity * 100) }}%</div>
+                </div>
+                <div class="result-card">
+                    <h3>Convergence</h3>
+                    <div class="convergence-badge {{ 'converged' if results.converged else 'not-converged' }}">
+                        {{ 'Yes' if results.converged else 'No' }}
+                    </div>
+                </div>
+                <div class="result-card">
+                    <h3>Iterations</h3>
+                    <div class="result-value">{{ results.iterations }}</div>
+                </div>
+            </div>
+
+            <!-- Visualization -->
+            <div class="visualization">
+                <h2>Pattern Comparison</h2>
+                <img src="{{ url_for('static', filename='result.png') }}" alt="Pattern Recognition Results">
+            </div>
+
+            <!-- Preprocessed Input Debug -->
+            <div class="visualization">
+                <h2>Preprocessed Input Debug</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                    This shows exactly what the network sees after preprocessing your uploaded image.
+                    If the similarity is low, the preprocessing may not have captured your intended pattern correctly.
+                </p>
+                <img src="{{ url_for('static', filename='preprocessed_debug.png') }}" alt="Preprocessed Input Pattern" 
+                     style="max-width: 400px;">
+            </div>
+
+            <!-- Pattern Details -->
+            <div class="pattern-details">
+                <h3>Detailed Pattern Analysis</h3>
+                <div class="pattern-grids">
+                    <div class="pattern-display">
+                        <h4>Input Pattern</h4>
+                        <div class="pattern-grid">
+                            {% for i in range(49) %}
+                                <div class="pattern-cell {{ 'positive' if results.input_pattern[i] == 1 else 'negative' }}">
+                                    {{ results.input_pattern[i] }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="pattern-display">
+                        <h4>Recalled Pattern</h4>
+                        <div class="pattern-grid">
+                            {% for i in range(49) %}
+                                <div class="pattern-cell {{ 'positive' if results.recalled_pattern[i] == 1 else 'negative' }}">
+                                    {{ results.recalled_pattern[i] }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Debug Information -->
+            {% if results.debug_info %}
+            <div class="pattern-details">
+                <h3>Debug Information</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Initial Distances (Hamming)</div>
+                        <div class="detail-value">
+                            {% for name, distance in results.initial_distances.items() %}
+                                <div>{{ name }}: {{ distance }}/49 bits</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Final Distances (Hamming)</div>
+                        <div class="detail-value">
+                            {% for name, distance in results.final_distances.items() %}
+                                <div>{{ name }}: {{ distance }}/49 bits</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <p style="margin-top: 1rem; color: var(--text-secondary); font-style: italic;">
+                    The network correctly recalls the pattern with the smallest Hamming distance (most similar pattern).
+                </p>
+                
+                {% if results.debug_info.final_similarities %}
+                    {% set max_similarity = results.debug_info.final_similarities.values() | max %}
+                    {% if max_similarity < 0.8 %}
+                        <div style="margin-top: 1rem; padding: 1rem; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px;">
+                            <h4 style="color: #92400e; margin-bottom: 0.5rem;">💡 Tips for Better Recognition:</h4>
+                            <ul style="color: #92400e; margin-left: 1rem;">
+                                <li>Use clear, high-contrast images (black text on white background)</li>
+                                <li>Ensure the letter fills most of the image area</li>
+                                <li>Avoid complex backgrounds or noise</li>
+                                <li>Try images with bold, clear letter shapes</li>
+                                <li>Check the "Preprocessed Input Debug" to see what the network actually received</li>
+                            </ul>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Similarities -->
+            <div class="similarities">
+                <h3>Pattern Similarities</h3>
+                {% for pattern_name, similarity in results.similarities.items() %}
+                    <div class="similarity-bar">
+                        <div class="similarity-label">
+                            <span>Pattern {{ pattern_name }}</span>
+                            <span>{{ "%.1f" | format(similarity * 100) }}%</span>
+                        </div>
+                        <div class="similarity-progress">
+                            {% set width_percent = "%.1f"|format(similarity * 100) %}
+                            <div class="similarity-fill similarity-{{ pattern_name.lower() }}" 
+                                 style="width: {{ width_percent }}%"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Technical Details -->
+            <div class="technical-details">
+                <h3>Technical Details</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Network Size</div>
+                        <div class="detail-value">49 neurons (7×7 grid)</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Training Patterns</div>
+                        <div class="detail-value">3 patterns (P, Q, R)</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Update Rule</div>
+                        <div class="detail-value">Asynchronous</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Activation Function</div>
+                        <div class="detail-value">Sign function</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Learning Rule</div>
+                        <div class="detail-value">Hebbian</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Uploaded File</div>
+                        <div class="detail-value">{{ results.filename }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions">
+                <a href="{{ url_for('index') }}" class="btn btn-primary">🔄 Try Another Image</a>
+                <a href="{{ url_for('demo') }}" class="btn btn-secondary">🎮 Interactive Demo</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

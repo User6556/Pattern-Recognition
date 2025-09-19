@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hopfield Network - Pattern Recognition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+            --secondary-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%);
+            --surface: #ffffff;
+            --surface-elevated: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            background: var(--surface);
+            padding: 3rem;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            max-width: 700px;
+            width: 95%;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+        }
+
+        .header {
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        h1 {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            font-weight: 400;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .description {
+            background: var(--surface-elevated);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            margin-bottom: 3rem;
+            text-align: left;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .description h3 {
+            color: var(--text-primary);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            font-size: 1.125rem;
+        }
+
+        .training-patterns {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+            animation: fadeInUp 0.8s ease-out 0.6s both;
+        }
+
+        .pattern {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pattern::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .pattern:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--border-hover);
+        }
+
+        .pattern:hover::before {
+            transform: scaleX(1);
+        }
+
+        .pattern h3 {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1.125rem;
+        }
+
+        .pattern-grid {
+            display: inline-grid;
+            grid-template-columns: repeat(5, 24px);
+            grid-template-rows: repeat(5, 24px);
+            gap: 2px;
+            background: var(--border);
+            padding: 8px;
+            border-radius: var(--radius-md);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .pattern-cell {
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+        }
+
+        .pattern-cell.black {
+            background-color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .pattern-cell.white {
+            background-color: var(--surface);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .upload-section {
+            background: var(--surface-elevated);
+            padding: 3rem;
+            border-radius: var(--radius-xl);
+            border: 2px dashed var(--border);
+            margin-bottom: 3rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease-out 0.8s both;
+        }
+
+        .upload-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .upload-section:hover {
+            border-color: #6366f1;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .upload-section:hover::before {
+            left: 100%;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            animation: bounce 2s infinite;
+        }
+
+        .file-input-container {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            margin: 1rem 0;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 2rem;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            font-size: 1rem;
+            box-shadow: var(--shadow-md);
+            border: none;
+        }
+
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .file-input-label:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: var(--radius-lg);
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            box-shadow: var(--shadow-md);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .submit-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .selected-file {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 1px solid var(--success);
+            border-radius: var(--radius-lg);
+            color: #065f46;
+            font-weight: 500;
+            box-shadow: var(--shadow-sm);
+            animation: slideInDown 0.3s ease-out;
+        }
+
+        .flash-messages {
+            margin-bottom: 2rem;
+        }
+
+        .flash-message {
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-lg);
+            margin-bottom: 1rem;
+            font-weight: 500;
+            box-shadow: var(--shadow-sm);
+            animation: slideInDown 0.3s ease-out;
+        }
+
+        .flash-error {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            color: #991b1b;
+            border: 1px solid var(--error);
+        }
+
+        .flash-success {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            color: #065f46;
+            border: 1px solid var(--success);
+        }
+
+        .demo-link {
+            margin-top: 2rem;
+            animation: fadeInUp 0.8s ease-out 1s both;
+        }
+
+        .demo-link a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #6366f1;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-lg);
+            transition: all 0.3s ease;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .demo-link a:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            background: rgba(99, 102, 241, 0.15);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .instructions {
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+
+        .instructions ul {
+            padding-left: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .instructions li {
+            margin-bottom: 0.75rem;
+            position: relative;
+        }
+
+        .instructions li::marker {
+            color: #6366f1;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem;
+                width: 98%;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .subtitle {
+                font-size: 1.125rem;
+            }
+
+            .training-patterns {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .upload-section {
+                padding: 2rem;
+            }
+
+            .file-input-label,
+            .submit-btn {
+                padding: 0.875rem 1.5rem;
+                font-size: 0.875rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .upload-icon {
+                font-size: 3rem;
+            }
+
+            .pattern-grid {
+                grid-template-columns: repeat(5, 20px);
+                grid-template-rows: repeat(5, 20px);
+            }
+
+            .pattern-cell {
+                width: 20px;
+                height: 20px;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            position: relative;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Hopfield Network</h1>
+            <p class="subtitle">Advanced Pattern Recognition with Neural Networks</p>
+        </div>
+
+
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="flash-message flash-error">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Upload form -->
+        <form method="POST" action="/upload" enctype="multipart/form-data" id="uploadForm">
+            <div class="upload-section">
+                <div class="upload-icon">📁</div>
+                <h3>Upload an Image</h3>
+                <p>Select a noisy or distorted image of pattern P or Q</p>
+                
+                <div class="file-input-container">
+                    <input type="file" name="file" class="file-input" id="fileInput" 
+                           accept=".png,.jpg,.jpeg,.gif,.bmp,.tiff" required>
+                    <label for="fileInput" class="file-input-label">
+                        📎 Choose File
+                    </label>
+                </div>
+                
+                <div id="selectedFile" class="selected-file" style="display: none;"></div>
+                
+                <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                    🔍 Recognize Pattern
+                </button>
+            </div>
+        </form>
+
+        <div class="demo-link">
+            <a href="/demo">🎮 Try Interactive Demo</a>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const selectedFile = document.getElementById('selectedFile');
+        const submitBtn = document.getElementById('submitBtn');
+
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                const fileName = file.name;
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                const fileType = file.type.split('/')[1].toUpperCase();
+                
+                selectedFile.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.75rem; justify-content: center;">
+                        <span style="font-size: 1.5rem;">📄</span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: #065f46;">${fileName}</div>
+                            <div style="font-size: 0.875rem; color: #047857;">${fileType} • ${fileSize} MB</div>
+                        </div>
+                    </div>
+                `;
+                selectedFile.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🔍 Recognize Pattern';
+            } else {
+                selectedFile.style.display = 'none';
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '🔍 Recognize Pattern';
+            }
+        });
+
+        // Enhanced form submission with loading state
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            if (!fileInput.files || !fileInput.files[0]) {
+                e.preventDefault();
+                alert('Please select a file first!');
+                return;
+            }
+            
+            // Add loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '🔄 Processing...';
+            submitBtn.classList.add('loading');
+            
+            // Add subtle animation to the container
+            document.querySelector('.container').style.opacity = '0.8';
+        });
+
+        // Drag and drop functionality
+        const uploadSection = document.querySelector('.upload-section');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadSection.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadSection.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadSection.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            uploadSection.style.borderColor = '#6366f1';
+            uploadSection.style.backgroundColor = 'rgba(99, 102, 241, 0.05)';
+            uploadSection.style.transform = 'scale(1.02)';
+        }
+
+        function unhighlight() {
+            uploadSection.style.borderColor = 'var(--border)';
+            uploadSection.style.backgroundColor = 'var(--surface-elevated)';
+            uploadSection.style.transform = 'scale(1)';
+        }
+
+        uploadSection.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                fileInput.files = files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        }
+    </script>
+</body>
+</html>
