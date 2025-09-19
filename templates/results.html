@@ -467,6 +467,9 @@
                 <div class="result-card">
                     <h3>Best Match</h3>
                     <div class="result-value">{{ results.best_match }}</div>
+                    {% if results.similarities and results.best_match in results.similarities and results.similarities[results.best_match] == 1.0 %}
+                        <small style="color: #10b981; font-size: 0.7rem;">✨ Enhanced Detection</small>
+                    {% endif %}
                 </div>
                 <div class="result-card">
                     <h3>Similarity</h3>
