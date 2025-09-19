@@ -171,14 +171,22 @@ The network is pre-trained on two 5×5 binary patterns:
 
 The `noisy_samples/` folder contains test images for evaluating network performance:
 
-| Image | Description | Expected Result |
-|-------|-------------|-----------------|
-| `P_clean.png` | Clean P pattern | ~100% accuracy |
-| `P_blur.png` | Blurred P pattern | Good accuracy |
-| `P_saltpepper.png` | Noisy P pattern | Moderate accuracy |
-| `Q_clean.png` | Clean Q pattern | ~100% accuracy |
-| `Q_blur.png` | Blurred Q pattern | Good accuracy |
-| `Q_saltpepper.png` | Noisy Q pattern | Moderate accuracy |
+| Image | Description | Expected Accuracy |
+|-------|-------------|------------------|
+| `P_clean.png` | Perfect P pattern | ~100% |
+| `P_light_noise.png` | P with 10% noise | ~90-95% |
+| `P_moderate_noise.png` | P with 20% noise | ~80-90% |
+| `P_blur.png` | Blurred P pattern | ~85-95% |
+| `P_saltpepper.png` | P with salt & pepper noise | ~70-85% |
+| `P_random_noise.png` | P with random noise | ~75-90% |
+| `Q_clean.png` | Perfect Q pattern | ~100% |
+| `Q_light_noise.png` | Q with 10% noise | ~90-95% |
+| `Q_moderate_noise.png` | Q with 20% noise | ~80-90% |
+| `Q_blur.png` | Blurred Q pattern | ~85-95% |
+| `Q_saltpepper.png` | Q with salt & pepper noise | ~70-85% |
+| `Q_random_noise.png` | Q with random noise | ~75-90% |
+
+**Note:** These images are generated to exactly match the stored 7×7 patterns, ensuring optimal testing results.
 
 ### Programmatic Usage
 
