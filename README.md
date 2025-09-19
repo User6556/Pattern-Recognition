@@ -162,6 +162,24 @@ The network is pre-trained on two 5×5 binary patterns:
    - Use preset patterns or add noise
    - Click "Recall Pattern" to see results
 
+3. **Test with Sample Images:**
+   - Use the provided sample images in `noisy_samples/` folder
+   - Try different noise levels: clean, blur, salt & pepper
+   - Compare how the network handles different types of degradation
+
+### 🧪 Sample Test Images
+
+The `noisy_samples/` folder contains test images for evaluating network performance:
+
+| Image | Description | Expected Result |
+|-------|-------------|-----------------|
+| `P_clean.png` | Clean P pattern | ~100% accuracy |
+| `P_blur.png` | Blurred P pattern | Good accuracy |
+| `P_saltpepper.png` | Noisy P pattern | Moderate accuracy |
+| `Q_clean.png` | Clean Q pattern | ~100% accuracy |
+| `Q_blur.png` | Blurred Q pattern | Good accuracy |
+| `Q_saltpepper.png` | Noisy Q pattern | Moderate accuracy |
+
 ### Programmatic Usage
 
 ```python
